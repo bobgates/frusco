@@ -1,16 +1,20 @@
 //extern crate nalgebra as na;
 //use na::{Vector3, Rotation3};
 
-#[derive(Debug)]
-pub struct Point{
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+extern crate rust_3d;
+
+
+//use rust_3d::point_3d::Point3D as Point;
+
+#[derive(Debug, Clone, Copy)]
+pub struct SurveyPoint{
+    pub downhole: f32,
+    pub azimuth: f32,
+    pub inclination: f32,
 }
 
 pub struct Borehole{
-    collar: Option<Point>,
-    end: Option<Point>,
+    pub survey: Vec<Option<SurveyPoint>>,
     stepsize: Option<f32>,
     stepcount: u32,
 }
@@ -18,42 +22,48 @@ pub struct Borehole{
 impl Borehole{
     pub fn new()->Borehole{
         Borehole{
-            collar: None,
-            end: None,
+            survey: Vec::new(),
             stepsize: None,
             stepcount: 0,
         }
     }
-    pub fn set_collar(&mut self, x: f32, y: f32, z: f32)->&mut Borehole{
-        self.collar=Some(Point{x:x, y:y, z:z});
+    pub fn add_survey_obs(&mut self, downhole: f32, azimuth: f32, inclination: f32)->&mut Borehole{
+        self.survey.push(Some(SurveyPoint{downhole:downhole, azimuth:azimuth, inclination:inclination}));
         self
     }
-    pub fn set_collar_point(&mut self, p: Point)->&mut Borehole{
-        self.collar=Some(p);
+    pub fn add_point(&mut self, p: SurveyPoint)->&mut Borehole{
+        self.survey.push(Some(p));
         self
     }
-    pub fn set_end(&mut self, x: f32, y: f32, z: f32)->&mut Borehole{
-        self.end=Some(Point{x:x, y:y, z:z});
+    pub fn set_step(&mut self, step: f32)->&mut Borehole{
+        self.stepsize = Some(step);
         self
     }
-    pub fn set_end_point(&mut self, p: Point)->&mut Borehole{
-        self.end=Some(p);
-        self
-    }
-    pub fn set_step(&mut self, step: f32)-> &mut Borehole{
-        self.stepsize=Some(step);
-        self
-    }
+
+
+// dMD = Distance2 - Distance1
+// B = acos(cos(I2 - I1) - (sin(I1)*sin(I2)*(1-cos(A2-A1))))
+// RF = 2 / B * tan(B / 2)
+// dX = dMD/2 * (sin(I1)*sin(A1) + sin(I2)*sin(A2))*RF
+// dY = dMD/2 * (sin(I1)*cos(A1) + sin(I2)*cos(A2))*RF
+// dZ = dMD/2 * (cos(I1) + cos(I2))*RF
+
+// X2 = X1 + dX
+// Y2 = Y1 + dX
+// Z2 = Z1 + dX
+
+
+
 }
 
 impl Iterator for Borehole{
-    type Item = Point;
+    type Item = SurveyPoint;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.stepcount += 1;
 
         if self.stepcount < 10 {
-            Some(Point{x:0.0, y:0.0, z: self.stepcount as f32})
+            Some(SurveyPoint{downhole:0.0, azimuth:0.0, inclination: self.stepcount as f32})
         } else {
             None
         }

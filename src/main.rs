@@ -1,52 +1,85 @@
 extern crate three;
 
 use std::env;
+use std::vec::Vec;
+use std::cmp::Ordering::Less;
+
+mod borehole;
+use borehole::SurveyPoint;
+use borehole::Borehole;
 
 fn main() {
-    
-    let mut args = env::args();
-    let path = args.nth(1).unwrap_or("test_data/car.obj".to_string());
 
-    println!("{}", path);
 
-    let mut win = three::Window::new("Three-rs obj loading example", "data/shaders");
-    let cam = win.factory.perspective_camera(60.0, 1.0, 10.0);
-    let mut controls = three::OrbitControls::new(&cam, [0.0, 2.0, -5.0], [0.0, 0.0, 0.0]);
+    // let mut collar : SurveyPoint = SurveyPoint{downhole:0.0, azimuth:0.0, inclination:0.0};
+    // let da = -10./180.0*3.1415926;
+    // let di = 8./180.0*3.1415926;
+    // let mut end : SurveyPoint = SurveyPoint{downhole:100.0, azimuth:da, inclination:di};
 
-    let mut dir_light = win.factory.directional_light(0xffffff, 0.9);
-    dir_light.look_at([15.0, 35.0, 35.0], [0.0, 0.0, 2.0], None);
-    win.scene.add(&dir_light);
+    // let mut borehole = Borehole::new();
 
-    let mut root = win.factory.group();
-    win.scene.add(&root);
-   let (group_map, _meshes) = win.factory.load_obj(&path);
-    for g in group_map.values() {
-        root.add(g);
+    // borehole.add_point(collar)
+    //         .add_point(end)
+    //         .set_step(0.5);
+
+    let mut borehole = Borehole::new();
+    borehole.add_survey_obs(0.0,  10.0, 10.0);
+    borehole.add_survey_obs(10.0, 11.0, 11.0);
+    borehole.add_survey_obs(20.0, 12.0, 12.0);
+    borehole.add_survey_obs(30.0, 13.0, 13.0);
+    borehole.add_survey_obs(15.0, 11.5, 11.5);
+
+
+    borehole.survey.sort_by(|a, b| a.unwrap().clone().downhole.partial_cmp(&b.unwrap().clone().downhole).unwrap_or(Less));
+
+
+    for i in borehole.survey{
+        println!("{:?}",i);
     }
 
+//    println!("_____{:?}", borehole.survey[1]);
 
-    let mut win2 = three::Window::new("Window 2", "data/shaders");
-    let cam2 = win2.factory.perspective_camera(60.0, 1.0, 10.0);
-    let mut controls2 = three::OrbitControls::new(&cam2, [0.0, 2.0, -5.0], [0.0, 0.0, 0.0]);
 
-    let mut dir_light2 = win2.factory.directional_light(0xffffff, 0.9);
-    dir_light2.look_at([15.0, 35.0, 35.0], [0.0, 0.0, 2.0], None);
-    win2.scene.add(&dir_light2);
+    // for point in borehole{
+    //     println!("{:?}", point);
+    // }
 
-    let mut root2 = win2.factory.group();
-    win2.scene.add(&root2);
-    let (group_map2, _meshes2) = win2.factory.load_obj(&path);
-    for g in group_map2.values() {
-        root2.add(g);
-    }
+    //collar.from_xyz(1.,2.,3.);
 
 
 
 
-    while win2.update() && !three::KEY_ESCAPE.is_hit(&win2.input) && win.update() && !three::KEY_ESCAPE.is_hit(&win.input){
-        controls.update(&win2.input);
-        win.render(&cam);
-        controls2.update(&win2.input);
-        win2.render(&cam2);
-    }
+   //  let map = Hashmap::L
+
+     
+   //  let mut args = env::args();
+   //  let path = args.nth(1).unwrap_or("test_data/car.obj".to_string());
+
+   //  println!("{}", path);
+
+
+   //  let v: Vec<_> = vec![1,2,3];
+   //  v.assert_eq!(, );
+
+   //  let mut win = three::Window::new("Three-rs obj loading example", "data/shaders");
+   //  let cam = win.factory.perspective_camera(60.0, 1.0, 10.0);
+   //  let mut controls = three::OrbitControls::new(&cam, [0.0, 2.0, -5.0], [0.0, 0.0, 0.0]);
+
+   //  let mut dir_light = win.factory.directional_light(0xffffff, 0.9);
+   //  dir_light.look_at([15.0, 35.0, 35.0], [0.0, 0.0, 2.0], None);
+   //  win.scene.add(&dir_light);
+
+   //  let mut root = win.factory.group();
+   //  win.scene.add(&root);
+   // let (group_map, _meshes) = win.factory.load_obj(&path);
+   //  for g in group_map.values() {
+   //      root.add(g);
+   //  }
+
+
+
+   //  while  win.update() && !three::KEY_ESCAPE.is_hit(&win.input){
+   //      controls.update(&win.input);
+   //      win.render(&cam);
+   //  }
 }
