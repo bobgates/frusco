@@ -25,7 +25,8 @@ fn main() {
 
 
     let mut borehole = Borehole::new();
-    borehole.set_step(0.5);
+    borehole.set_step(0.5)
+            .set_collar(50.0, 50.0, 50.0);
 
     // borehole.add_survey_obs(0.0, 10.0, 10.0);
     // borehole.add_bottom_of_hole(40.);
@@ -38,17 +39,16 @@ fn main() {
     borehole.add_survey_obs(15.0, 11.5, 0.0);
     borehole.add_bottom_of_hole(40.);
   
+
     // for i in borehole{
     //      println!("{:?}",i);
     // }
 
-
-    for i in 0..81 {
-      let depth = (i as f32)/2.0;
-      println!["{}", depth];
-      borehole.interpolate(depth);
-      //println!["{} - {:?}", depth, borehole.interpolate(depth)];
-    }
+   for i in 0..81 {
+     let depth = (i as f32)/2.0;
+     let pt = borehole.interpolate(depth).unwrap();
+     println!["{}: \t{}, \t{}, \t{}", depth, pt.x, pt.y, pt.z];
+   }
 
 
 }
