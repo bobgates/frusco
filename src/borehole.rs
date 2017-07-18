@@ -5,7 +5,7 @@ use std::cmp::Ordering::Less;
 
 
 #[derive(Debug, Clone, Copy)]
-pub struct SurveyPoint{
+pub struct SurveyObservation{
     pub downhole: f32,
     pub azimuth: f32,
     pub inclination: f32,
@@ -18,16 +18,24 @@ pub struct Point{
     pub z: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Coord{
-    depth: f32,
+    pub depth: f32,
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SurveyCoord{
+    pub north: f32,
+    pub east: f32,
+    pub depth: f32,
+}
+
 pub struct Borehole{
-    survey: Vec<SurveyPoint>,
-    coords: Vec<Coord>,
+    survey: Vec<SurveyObservation>,
+    pub coords: Vec<Coord>,
     collar: Option<Point>,
     stepsize: Option<f32>,
     stepcount: usize,
@@ -64,22 +72,24 @@ impl Borehole{
             // The division was valid
         match self.collar {
             Some(col) => {
-                println!["entering make_coords Some match"];
                 self.coords.clear();
-                let mut coord = Coord{depth: 0.0, 
+                let coord = Coord{depth: 0.0, 
                                       x:self.collar.unwrap().x,
                                       y:self.collar.unwrap().y,
                                       z:self.collar.unwrap().z,
                                 };
                 self.coords.push(coord);
-
-                 
-
-
-
-
-
-
+                for i in 0..self.survey.len()-1{
+                    let here = self.survey[i];
+                    let next = self.survey[i+1];
+                    let delta = self.delta_next_from_here(&here, &next);
+                    let nextc = self.coords[i].clone();
+                    self.coords.push(Coord{depth:nextc.depth+(next.downhole-here.downhole),
+                                            x:nextc.x+delta.east,
+                                            y:nextc.y+delta.north,
+                                            z:nextc.z+delta.depth,
+                                    });
+                }
             },
             None    => println!("Collar not yet defined in make_coords"),
         }
@@ -87,10 +97,10 @@ impl Borehole{
     }
 
     pub fn add_survey_obs(&mut self, downhole: f32, azimuth: f32, inclination: f32)->&mut Borehole{
-        self.add_survey_point(SurveyPoint{downhole:downhole, azimuth:azimuth.to_radians(), inclination:inclination.to_radians()})
+        self.add_survey_point(SurveyObservation{downhole:downhole, azimuth:azimuth.to_radians(), inclination:inclination.to_radians()})
     }
 
-    pub fn add_survey_point(&mut self, p: SurveyPoint)->&mut Borehole {
+    pub fn add_survey_point(&mut self, p: SurveyObservation)->&mut Borehole {
         self.survey.push(p);
         self.sort_observations();
         self.make_coords();
@@ -101,7 +111,7 @@ impl Borehole{
         //  Shouldn't allow adding bottom of hole if hole has no coordinates...
         if self.survey.len()>0{
             let last_survey_point = self.survey[self.survey.len()-1];
-            self.add_survey_point(SurveyPoint{downhole:bottom_depth,
+            self.add_survey_point(SurveyObservation{downhole:bottom_depth,
                                        azimuth:last_survey_point.azimuth, 
                                        inclination:last_survey_point.inclination});
         }
@@ -117,63 +127,48 @@ impl Borehole{
         self.survey[self.survey.len()-1].downhole
     }
 
-    fn next_from_here(coord : Point, here: SurveyPoint, next: SurveyPoint)->Coord{
+    fn delta_next_from_here(&mut self, here: &SurveyObservation, next: &SurveyObservation)->SurveyCoord{
 
-            let mut a1 = here.azimuth;
-            let mut a2 = next.azimuth;
-            let mut i1 = here.inclination;
-            let mut i2 = next.inclination;
-            let mut md = next.downhole - here.downhole;
-            let mut eps = (depth - here.downhole)/md;
+        // This code from http://www.drillingformulas.com/minimum-curvature-method/ 
+        // calculates the X, Y, Z of the lower station based on the position of the station above.
 
-// This code from http://www.drillingformulas.com/minimum-curvature-method/ 
-// calculates the X, Y, Z of the bottom station based on the position of the top one
-            let beta = ((i2-i1).cos() - (i1.sin()*i2.sin()*(1.0-(a2-a1).cos()))).acos();
-            let rf = if beta == 0.0 { 1.0 } else { 2./beta * (beta/2.0).tan() };
-            let north = md/2.0*(i1.sin()*a1.cos() +i2.sin()*a2.cos())*rf;
-            let east = md/2.0*(i1.sin()*a1.sin() +i2.sin()*a2.sin())*rf;
-            let depth = md/2.0*(i1.cos()+i2.cos())*rf;
+        // md = Distance2 - Distance1
+        // B = acos(cos(i2 - i1) - (sin(i1)*sin(i2)*(1-cos(a2-a1))))
+        // rf = 2 / B * tan(B / 2)
+        // dX = dmd/2 * (sin(i1)*sin(a1) + sin(i2)*sin(a2))*rf
+        // dY = dmd/2 * (sin(i1)*cos(a1) + sin(i2)*cos(a2))*rf
+        // dZ = dmd/2 * (cos(i1) + cos(i2))*rf
 
-        Coord{depth: next.downhole, 
-                x: coord.x + east, 
-                y: coord.y + north, 
-                z: coord.z + depth}
+        // X2 = X1 + dX
+        // Y2 = Y1 + dX
+        // Z2 = Z1 + dX
+
+        let mut a1 = here.azimuth;
+        let mut a2 = next.azimuth;
+        let mut i1 = here.inclination;
+        let mut i2 = next.inclination;
+        let mut md = next.downhole - here.downhole;
+
+        let beta = ((i2-i1).cos() - (i1.sin()*i2.sin()*(1.0-(a2-a1).cos()))).acos();
+        let rf = if beta == 0.0 { 1.0 } else { 2./beta * (beta/2.0).tan() };
+        let north = md/2.0*(i1.sin()*a1.cos() +i2.sin()*a2.cos())*rf;
+        let east = md/2.0*(i1.sin()*a1.sin() +i2.sin()*a2.sin())*rf;
+        let depth = md/2.0*(i1.cos()+i2.cos())*rf;
+
+        SurveyCoord{north:north, east:east, depth:depth}
     }
 
+    fn delta_interpolate(&mut self, downhole: f32, here: &SurveyObservation, next: &SurveyObservation)->SurveyCoord{
 
-    pub fn interpolate(&mut self, depth : f32)->Option<Point>{
-        if depth>self.depth() || depth <0.0{
-            None
-        } else {
-
-            let mut here_point = SurveyPoint{downhole: 0.0, azimuth: 0.0, inclination: 0.0};
-            let mut next = here.clone();
-            
-
-            for i in 0..self.survey.len()-1{
-                let above = self.survey[i].downhole;
-                let below = self.survey[i+1].downhole;
-                //println!["***{}  {}   {}", depth, above, below];
-                if depth>=above && depth <=below{
-                    here = self.survey[i];
-                    next = self.survey[i+1];
-
-
-                    //println!["***{}  {}   {}", depth, above, below];
-                    break;
-                }
-
-            }
-            let next_point = next_from_here(here_point, here, next);
-
-            println!["{:?}", next_point];
-
-
-
-
+        let mut a1 = here.azimuth;
+        let mut a2 = next.azimuth;
+        let mut i1 = here.inclination;
+        let mut i2 = next.inclination;
+        let mut md = next.downhole - here.downhole;
+        let mut eps = (downhole - here.downhole)/md;
 
 // To calculate the coords at an arbitrary position use Black and Clark 91.Clark
-// Black and Clarke use gamma where the previous section uses Beta
+// Black and Clarke use gamma where the previous section uses beta. Beta is used here in the code.
 // Given the first station is P1, the second station is P2, and I want
 // position somewhere between, at P3, then: 
 //
@@ -181,42 +176,58 @@ impl Borehole{
 //
 // where cos(gamma) = t1.t2
 //          t1, t2 are tangent vectors at the two stations
-//          L is the length of arc between thte two stations
+//          L is the length of arc between thte two stations,
+//          eps = the fraction of arc to unknown point divided by arc between points
 //          k1 = cos(eps.gamma) -cos(gamma).cos((1-eps).gamma)/
 //                    sin^2(gamma)
 //          k2 = sin(eps.gamma)/sin(gamma)
-
-
-            let k1 = if beta==0.0 {1.0-eps} else {((eps*beta).cos()-beta.cos()*((1.0-eps)*beta).cos())/beta.sin()/beta.sin()};
-            let k2 = if beta==0.0 { eps } else {(eps*beta).sin()/beta.sin()};
-
-            let north = md/2.0*(i1.sin()*a1.cos()*(1.0-k1) +i2.sin()*a2.cos()*(k2))*rf;
-            let east = md/2.0*(i1.sin()*a1.sin()*(1.0-k1) +i2.sin()*a2.sin()*(k2))*rf;
-            let depth = md/2.0*(i1.cos()*(1.0-k1)+i2.cos()*(k2))*rf;
-
-            Some(Point{x:east, y:north, z:depth})
             
-        }
+        let beta = ((i2-i1).cos() - (i1.sin()*i2.sin()*(1.0-(a2-a1).cos()))).acos();
+        let rf = if beta == 0.0 { 1.0 } else { 2./beta * (beta/2.0).tan() };
+        let k1 = if beta==0.0 {1.0-eps} else {((eps*beta).cos()-beta.cos()*((1.0-eps)*beta).cos())/beta.sin()/beta.sin()};
+        let k2 = if beta==0.0 { eps } else {(eps*beta).sin()/beta.sin()};
+
+        let north = md/2.0*(i1.sin()*a1.cos()*(1.0-k1) +i2.sin()*a2.cos()*(k2))*rf;
+        let east = md/2.0*(i1.sin()*a1.sin()*(1.0-k1) +i2.sin()*a2.sin()*(k2))*rf;
+        let depth = md/2.0*(i1.cos()*(1.0-k1)+i2.cos()*(k2))*rf;
+
+        SurveyCoord{north:north, east:east, depth:depth}
     }
 
+    pub fn interpolate(&mut self, depth : f32)->Option<Point>{
+        if depth>self.depth() || depth <0.0{
+            None
+        } else {
+
+            // let mut here = SurveyObservation{downhole: 0.0, azimuth: 0.0, inclination: 0.0};
+            // let mut next = here.clone();
+            
+
+            let mut pos = 0;
+            for i in 0..self.survey.len()-1{
+                let above = self.survey[i].downhole;
+                let below = self.survey[i+1].downhole;
+                if depth>=above && depth <=below{
+                    pos = i;
+                    break;
+                }
+            }
+            let here = self.survey[pos];
+            let next = self.survey[pos+1];
+
+            let halfway = self.delta_interpolate(depth, &here, &next);
+            let here_coord = self.coords[pos];
+
+            Some(Point{x:halfway.east+here_coord.x, 
+                       y:halfway.north+here_coord.y, 
+                       z:halfway.depth+here_coord.z})
+        }
+    }
 }
 
 
-// dmd = Distance2 - Distance1
-// B = acos(cos(i2 - i1) - (sin(i1)*sin(i2)*(1-cos(a2-a1))))
-// rf = 2 / B * tan(B / 2)
-// dX = dmd/2 * (sin(i1)*sin(a1) + sin(i2)*sin(a2))*rf
-// dY = dmd/2 * (sin(i1)*cos(a1) + sin(i2)*cos(a2))*rf
-// dZ = dmd/2 * (cos(i1) + cos(i2))*rf
-
-// X2 = X1 + dX
-// Y2 = Y1 + dX
-// Z2 = Z1 + dX
-
-
-
 impl Iterator for Borehole {
-    type Item = SurveyPoint;
+    type Item = SurveyObservation;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.stepcount += 1;
