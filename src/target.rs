@@ -1,34 +1,104 @@
 use borehole::Point;
 
+use cgmath::prelude::*;
+use cgmath::{Point3, Vector3};
 
-struct Rect3D{
-    top_left: Point,
-    bottom_right: Point,
+
+
+pub struct Rect3D{
+    pub top_left: Point3<f32>,
+    pub top_right: Point3<f32>,
+    pub bottom_right: Point3<f32>,
 }
 
 
 pub struct TargetPlane{
     dip: f32,
     dir: f32,
-    offset: Point,
+    offset: Point3<f32>,
     width: f32,         // along strike
     length: f32,        // perpendicular to strike, or along dip
     basic_rect: Rect3D,
 }
 
+pub fn projection_from_point(rect : Rect3D, point : Point3<f32>){
+
+    // From Eric Bainville on Stackoverflow:
+    // Assuming the rectangle is represented by three points A,B,C, 
+    // with AB and BC perpendicular, you only need to check the 
+    // projections of the query point M on AB and BC:
+
+    // 0 <= dot(AB,AM) <= dot(AB,AB) &&
+    // 0 <= dot(BC,BM) <= dot(BC,BC)
+
+    let a = Point3::new(rect.top_left.x,     rect.top_left.y,     rect.top_left.z);
+    let b = Point3::new(rect.top_right.x,    rect.top_right.y,    rect.top_right.z);
+    let c = Point3::new(rect.bottom_right.x, rect.bottom_right.y, rect.bottom_right.z);
+
+    let AB = b-a;
+    let BC = c-b;
+
+    println!["\n\n\nProjection_from_point\nAB: {:?}", AB];
+    println!["BC: {:?}", BC];
+
+    let n = BC.cross(AB);
+    let n = n/n.magnitude();
+    println!["normal: {:?}", n];
+
+    // let n = Vector3::new(0,1,0);
+    // plane is Ax +By = Cz + d =0
+    // substitute a  point on the plane, like 10, 10, 10:
+    // 0*10 + 1*10 + 0*10 + D = 0
+
+    // D = 0-normal.pt use C1 as point:
+
+    let d = 0.0 - a.dot(n);
+    println!["d: {:?}", d];
+
+    // scalar distance point to plane = n.p +d
+    let m = point;
+    let p = m.to_vec();
+
+    let sd = n.dot(p)+d;
+
+    println!["scalar distance:\n{:?}", sd];
+
+    // Then to find projection of p onto plane, 
+    // add scalar distance to p, in the direction of None
+
+    let pop = p-sd*n;
+
+    println!["pop:   {:?}", pop];
+
+
+    let AM = m-a;
+    let BM = m-b;
+
+
+    let l1 = AB.dot(AM);
+    let l2 = BC.dot(BM);
+    
+
+    let result = (0.0 <= l1)&& (l1 <= AB.dot(AB)) &&
+                 (0.0 <= l2)&& (l2 <= BC.dot(BC));
+
+    println!["Inside now on: {}", result];
+}
 
 impl TargetPlane{
+
     pub fn new()->TargetPlane{
         TargetPlane{dip: 0.0,
                     dir: 0.0,
-                    offset: Point{x:0.0, y:0.0, z:0.0},
+                    offset: Point3{x:0.0, y:0.0, z:0.0},
                     width: 100.0,         // along strike
                     length: 100.0,        // perpendicular to strike, or along dip
-                    basic_rect: Rect3D{top_left: Point{x:0.0, y:0.0, z:0.0},
-                                bottom_right: Point{x:0.0, y:0.0, z:0.0},
-                            },
-                    }
-    } 
+                    basic_rect: Rect3D{top_left: Point3{x:-5.0, y:5.0, z:3.0},
+                                       top_right: Point3{x:5.0, y:5.0, z:3.0},
+                                       bottom_right: Point3{x:5.0, y:-5.0, z:0.0},
+                                      }
+        }
+    }    
 
     pub fn print(&mut self){
         println!["dip: {:.2},  dir: {:.2}", self.dip, self.dir];
@@ -39,12 +109,17 @@ impl TargetPlane{
 
     fn recalc(&mut self)->&mut TargetPlane{
         self.basic_rect = Rect3D{
-                    top_left: Point{
+                    top_left: Point3{
                         x:-self.width/2.+self.offset.x, 
                         y:-self.length/2.0+self.offset.y, 
                         z:0.0+self.offset.z,
                     },
-                    bottom_right: Point{
+                    top_right: Point3{
+                        x:self.width/2.+self.offset.x, 
+                        y:-self.length/2.0+self.offset.y, 
+                        z:0.0+self.offset.z,
+                    },
+                    bottom_right: Point3{
                         x:self.width/2.0+self.offset.x, 
                         y:self.length/2.0+self.offset.y, 
                         z:0.0+self.offset.z,
@@ -101,8 +176,4 @@ impl TargetPlane{
         self.length = val;
         self.recalc()
     }
-
-
-
-
 }

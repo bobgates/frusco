@@ -3,9 +3,12 @@
 //use std::env;
 //use std::vec::Vec;
 
+extern crate cgmath;
+use cgmath::{Point3, Vector3};
+
 
 mod target;
-use target::TargetPlane;
+use target::{TargetPlane, Rect3D};
 
 
 
@@ -14,6 +17,7 @@ use target::TargetPlane;
 mod borehole;
 //use borehole::SurveyObservation;
 use borehole::Borehole;
+
 
 fn main() {
 
@@ -45,6 +49,19 @@ fn main() {
             .move_dip(2.4);
     target1.print();
     
+    println![""];
+
+
+
+    let rect = Rect3D{top_left: Point3{x:-5.0, y:5.0, z:3.0},
+                  top_right: Point3{x:5.0, y:5.0, z:3.0},
+                  bottom_right: Point3{x:5.0, y:-5.0, z:0.0},
+               };
+    let p = Point3{x: 0.0, y:0.0, z:5.0};
+
+
+
+    target::projection_from_point(rect, p);
 
     // println!["depth: \tX, \tY, \tZ"];
     // for depth in 0..61 {
