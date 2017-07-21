@@ -4,7 +4,7 @@
 //use std::vec::Vec;
 
 extern crate cgmath;
-use cgmath::{Point3, Vector3};
+use cgmath::Point3;
 
 
 mod target;
@@ -53,23 +53,31 @@ fn main() {
 
 
 
-    let rect = Rect3D{top_left: Point3{x:-5.0, y:5.0, z:3.0},
-                  top_right: Point3{x:5.0, y:5.0, z:3.0},
-                  bottom_right: Point3{x:5.0, y:-5.0, z:0.0},
-               };
+    let rect = Rect3D{top_left: Point3{x:-5.0, y:50.0, z:3.0},
+                      top_right: Point3{x:5.0, y:50.0, z:3.0},
+                      bottom_right: Point3{x:5.0, y:20.0, z:0.0},
+                     };
+
+
     let p = Point3{x: 0.0, y:0.0, z:5.0};
 
 
 
-    target::projection_from_point(rect, p);
+    target::projection_from_point(&rect, p);
 
     // println!["depth: \tX, \tY, \tZ"];
-    // for depth in 0..61 {
-    //     let pt = borehole.get_xyz(depth as f32);
+    for depth in 0..61 {
+        let pt = borehole.get_xyz(depth as f32);
 
-    //     match pt {
-    //         None => println!["No results from borehole.get_xyz for depth {}", depth],
-    //         Some(pt) => println!["{}: \t{:.2}, \t{:.2}, \t{:.2}", depth, pt.x, pt.y, pt.z],
-    //     }
-    // }
+        match pt {
+            None => println!["No results from borehole.get_xyz for depth {}", depth],
+            Some(pt) => {//println!["{}: \t{:.2}, \t{:.2}, \t{:.2}", depth, pt.x, pt.y, pt.z];
+                         let sd=target::projection_from_point(&rect, Point3{x:pt.x, y:pt.y, z:pt.z});
+                         match sd{
+                            None => (),
+                            Some(sd) => {println!["{},{},{}", depth, pt.z,sd]}
+                         }
+                     },
+        }
+    }
 }
