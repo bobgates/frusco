@@ -1,123 +1,47 @@
 //! A simple demonstration of how to construct and use Canvasses by splitting up the window.
 
-#[macro_use] 
+//#[macro_use] 
 extern crate conrod;
 extern crate glium;
 extern crate find_folder;
 extern crate winit;
 extern crate rand;
 
-use conrod::backend::glium::glium::{DisplayBuild, Surface};
+//use conrod::backend::glium::glium::{DisplayBuild, Surface};
+use std;
 
-pub fn main() {
-
-    const WIDTH: u32 = 800;
-    const HEIGHT: u32 = 600;
-
-
-
-
-    // Build the window.
-    let display = glium::glutin::WindowBuilder::new()
-        .with_vsync()
-        .with_dimensions(WIDTH, HEIGHT)
-        .with_title("First pass target GUI")
-        .with_multisampling(4)
-        .build_glium()
-        .unwrap();
-
-
-    // construct our `Ui`.
-    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
-
-    // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
-    let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
-    ui.fonts.insert_from_file(font_path).unwrap();
-
-
-
-    let mut app = DemoApp::new();
-
-    // A type used for converting `conrod::render::Primitives` into `Command`s that can be used
-    // for drawing to the glium `Surface`.
-    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
-
-    // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
-
-    // Instantiate the generated list of widget identifiers.
-    let ids = &mut Ids::new(ui.widget_id_generator());
-
-    // Poll events from the window.
-    let mut event_loop = EventLoop::new();
-    'main: loop {   
-
-        // Handle all events.
-        for event in event_loop.next(&display) {
-
-//            println!["{:?}", event];
-
-            // Use the `winit` backend feature to convert the winit event to a conrod one.
-            if let Some(event) = conrod::backend::winit::convert(event.clone(), &display) {
- //               println!["__{:?}", event];
-                ui.handle_event(event);
-
-                event_loop.needs_update();
-            }
-
-            match event {
-                // Break from the loop upon `Escape`.
-                glium::glutin::Event::KeyboardInput(_, _, Some(glium::glutin::VirtualKeyCode::Escape)) |
-                glium::glutin::Event::Closed =>
-                    break 'main,
-                _ => {},
-            }
-        }
-
-        // Instantiate all widgets in the GUI.
-        set_widgets(ui.set_widgets(), ids, &mut app);
-
-        // Render the `Ui` and then display it on the screen.
-        if let Some(primitives) = ui.draw_if_changed() {
-            renderer.fill(&display, primitives, &image_map);
-            let mut target = display.draw();
-            target.clear_color(0.0, 0.0, 0.0, 1.0);
-            renderer.draw(&display, &mut target, &image_map).unwrap();
-            target.finish().unwrap();
-        }
-    }
-}
 
 // Draw the Ui.
-fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut DemoApp) {
+pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp) {
     use conrod::{color, widget, Colorable, Labelable, Borderable, Positionable, Sizeable, Widget};
 
-    const MARGIN: conrod::Scalar = 30.0;
-    const SHAPE_GAP: conrod::Scalar = 50.0;
     const TITLE_SIZE: conrod::FontSize = 42;
     const SUBTITLE_SIZE: conrod::FontSize = 10;
+    const VAR_SIZE: conrod::FontSize = 20;
 
 
     // Construct our main `Canvas` tree.
     widget::Canvas::new().flow_down(&[
-        (ids.header, widget::Canvas::new().color(color::BLUE).length_weight(0.05)),
-        (ids.radargram, widget::Canvas::new().length_weight(0.6)
-                .color(color::GREY)
-                //.border(10.)
-                .border_color(color::GREY)
-                .flow_right(&[
-                        (ids.rg_controls, widget::Canvas::new()
-                            .color(color::LIGHT_ORANGE)
-                            .length_weight(0.1)
-                            //.border(0.)
-                            .border_color(color::GREY)
-                        ),
-                        (ids.rg_image, widget::Canvas::new()
-                            .color(color::ORANGE)
-                            .length_weight(0.8)
-                        ),
-                ])
+        (ids.header, widget::Canvas::new()
+            .color(color::BLUE)
+            .length_weight(0.05)),
+        (ids.radargram, widget::Canvas::new()
+            .length_weight(0.6)
+            .color(color::GREY)
+            //.border(10.)
+            .border_color(color::GREY)
+            .flow_right(&[
+                (ids.rg_controls, widget::Canvas::new()
+                    .color(color::LIGHT_ORANGE)
+                    .length(84.0)
+                    //.border(0.)
+                    .border_color(color::GREY)
+                ),
+                (ids.rg_image, widget::Canvas::new()
+                    .color(color::ORANGE)
+                    .length_weight(0.8)
+                ),
+            ])
         ),
         (ids.target, widget::Canvas::new().length_weight(0.4).color(color::YELLOW)),
         (ids.footer, widget::Canvas::new().length_weight(0.05).color(color::BLUE).scroll_kids_vertically()),
@@ -143,8 +67,7 @@ fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut DemoApp) {
     let max_x = ball_x_range / 2.2;
     let min_y = -ball_y_range / 2.5;
     let max_y = ball_y_range / 2.5;
-    let side = 200.0;
-
+    
     for (x, y) in widget::XYPad::new(app.ball_xy[0], min_x, max_x,
                                      app.ball_xy[1], min_y, max_y)
         //.label("BALL XY")
@@ -171,38 +94,47 @@ fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut DemoApp) {
 //************************
     // Use a `NumberDialer` widget to adjust the frequency of the sine wave below.
 
-
+    widget::Text::new("Dip")
+        .parent(ids.rg_controls)
+        .top_left_with_margin_on(ids.rg_controls, 7.0)
+        .font_size(VAR_SIZE)
+        .set(ids.dip_title, ui);
 
     let min = -90.0;
     let max = 90.0;
     let decimal_precision = 1;
     for new_dip in widget::NumberDialer::new(app.dip, min, max, decimal_precision)
-        .down(60.0)
-        .parent(ids.rg_controls)
-        //.middle_of(ids.rg_controls)
-        .w_h(60.0, 30.0)
+        .y_position_relative_to(ids.dip_title,conrod::position::Relative::Scalar(-25.0))
+        .align_left_of(ids.dip_title)
+        .w_h(70.0, 25.0)
         //.label("F R E Q")
         .set(ids.dip_dialer, ui)
-//        .parent(ids.rg_controls)
     {
         app.dip = new_dip;
     }
+
+
+    widget::Text::new("Strike")
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.dip_dialer,conrod::position::Relative::Scalar(-30.0))
+        .align_left_of(ids.dip_title)
+        .font_size(VAR_SIZE)
+        .set(ids.strike_title, ui);
 
     let min = 0.0;
     let max = 360.0;
     let decimal_precision = 1;
     for new_strike in widget::NumberDialer::new(app.strike, min, max, decimal_precision)
-        .down(60.0)
-        //.middle_of(ids.rg_controls)
-        .w_h(70.0, 30.0)
-        //.label("F R E Q")
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.strike_title,conrod::position::Relative::Scalar(-25.0))
+        .align_left_of(ids.dip_title)
+        .w_h(70.0, 25.0)
         .set(ids.strike_dialer, ui)
-//        .parent(ids.rg_controls)
     {
         app.strike = new_strike;
     }
 
-    widget::Canvas::new().flow_down(&[new_strike]).set(ids.dialer_panel);
+//widget::Canvas::new().flow_down(&[ids.dip_dialer, ids.strike_dialer]);
 
 
     // let button = widget::Button::new().color(color::RED).w_h(30.0, 30.0);
@@ -216,9 +148,12 @@ fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut DemoApp) {
 }
 
 
+//fn labelled_dialer(text: &str, value: f32, nu)
+
+
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
-    struct Ids {
+pub    struct Ids {
         master,
         header,
         radargram,
@@ -245,6 +180,9 @@ widget_ids! {
         bing,
         bong,
 
+
+        dip_title,
+        strike_title,
         dialer_panel,
         dip_dialer,
         strike_dialer,
@@ -257,12 +195,7 @@ widget_ids! {
         xy_pad,
         ball,
         toggle,
-
-
     }
-
-
-
 }
 
 pub struct EventLoop {
@@ -317,7 +250,7 @@ impl EventLoop {
 }
 
 
-pub struct DemoApp {
+pub struct FruscoApp {
     ball_xy: conrod::Point,
     ball_color: conrod::Color,
     dip: f32,
@@ -326,11 +259,11 @@ pub struct DemoApp {
 }
 
 
-impl DemoApp {
+impl FruscoApp {
 
     /// Simple constructor for the `DemoApp`.
     pub fn new() -> Self {
-        DemoApp {
+        FruscoApp {
             ball_xy: [0.0, 0.0],
             ball_color: conrod::color::WHITE,
             dip: 0.0,
