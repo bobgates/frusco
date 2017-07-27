@@ -23,6 +23,7 @@ mod borehole;
 use borehole::Borehole;
 
 mod gui;
+mod theme;
 
 use conrod::backend::glium::glium::{DisplayBuild, Surface};
 
@@ -38,14 +39,14 @@ pub fn main() {
     let display = glium::glutin::WindowBuilder::new()
         .with_vsync()
         .with_dimensions(WIDTH, HEIGHT)
-        .with_title("First pass target GUI")
+        .with_title("Target manipulator")
         .with_multisampling(4)
         .build_glium()
         .unwrap();
 
 
     // construct our `Ui`.
-    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
+    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).theme(theme::theme()).build();;
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
     let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();

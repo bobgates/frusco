@@ -10,6 +10,7 @@ extern crate rand;
 //use conrod::backend::glium::glium::{DisplayBuild, Surface};
 use std;
 
+use theme::theme;
 
 // Draw the Ui.
 pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp) {
@@ -17,96 +18,86 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 
     const TITLE_SIZE: conrod::FontSize = 42;
     const SUBTITLE_SIZE: conrod::FontSize = 10;
-    const VAR_SIZE: conrod::FontSize = 20;
 
+    const TEXT_SIZE: conrod::FontSize = 18;
+    const BEFORE_EDITBOX: conrod::position::Relative = conrod::position::Relative::Scalar(-21.0);
+    const BEFORE_TEXT: conrod::position::Relative = conrod::position::Relative::Scalar(-21.0);
+    const TEXTBOX_W: f64 = 70.0;
+    const TEXTBOX_H: f64 = 21.0;
 
     // Construct our main `Canvas` tree.
     widget::Canvas::new().flow_down(&[
         (ids.header, widget::Canvas::new()
-            .color(color::BLUE)
-            .length_weight(0.05)),
+//            .color(color::BLUE)
+            .length_weight(0.05)
+        ),
         (ids.radargram, widget::Canvas::new()
-            .length_weight(0.6)
-            .color(color::GREY)
+            .length_weight(0.5)
+//            .color(color::GREY)
             //.border(10.)
-            .border_color(color::GREY)
+//            .border_color(color::GREY)
             .flow_right(&[
                 (ids.rg_controls, widget::Canvas::new()
-                    .color(color::LIGHT_ORANGE)
+//                    .color(color::LIGHT_ORANGE)
                     .length(84.0)
                     //.border(0.)
-                    .border_color(color::GREY)
+//                    .border_color(color::GREY)
                 ),
                 (ids.rg_image, widget::Canvas::new()
-                    .color(color::ORANGE)
+                    .border_color(color::GRAY)
+                    .border(2.)
                     .length_weight(0.8)
+                ),
+                (ids.rg_spacer, widget::Canvas::new()
+                    .length_weight(0.05)
                 ),
             ])
         ),
-        (ids.target, widget::Canvas::new().length_weight(0.4).color(color::YELLOW)),
-        (ids.footer, widget::Canvas::new().length_weight(0.05).color(color::BLUE).scroll_kids_vertically()),
+        (ids.target, widget::Canvas::new()
+            .length_weight(0.5)
+//            .color(color::YELLOW)
+        ),
+//         (ids.footer, widget::Canvas::new()
+//             .length_weight(0.05)
+// //            .color(color::BLUE)
+//             .scroll_kids_vertically()
+//         ),
     ]).set(ids.master, ui);
     
-    let shapes_canvas_rect = ui.rect_of(ids.target).unwrap();
-    let w = shapes_canvas_rect.w() * 5.0 / 6.0;
-    let h = shapes_canvas_rect.h() * 5.0 / 6.0;
-    let radius = 10.0;
+//---------------------------------
+// Radargram itself
+//---------------------------------
+    // Use the `PlotPath` widget to display a sine wave.
+    let min_x = 0.0;
+    let max_x = 100.0;
+    let min_y = -12.0;
+    let max_y = 12.0;
 
-    widget::RoundedRectangle::fill([w, h], radius)
-        .color(conrod::color::CHARCOAL.alpha(0.25))
-        .middle_of(ids.target)
-        .set(ids.rounded_rectangle, ui);
+    widget::PlotPath::new(min_x, max_x, min_y, max_y, f32::sin)
+        .kid_area_w_of(ids.rg_image)
+        .color(color::YELLOW)
+        .middle_of(ids.rg_image)
+        .set(ids.reflector, ui);
 
-//*********************************************************************************
-//*********************************************************************************
 
-    let ball_x_range = ui.kid_area_of(ids.target).unwrap().w();
-    let ball_y_range = ui.kid_area_of(ids.target).unwrap().h();
 
-    let min_x = -ball_x_range / 2.2;
-    let max_x = ball_x_range / 2.2;
-    let min_y = -ball_y_range / 2.5;
-    let max_y = ball_y_range / 2.5;
-    
-    for (x, y) in widget::XYPad::new(app.ball_xy[0], min_x, max_x,
-                                     app.ball_xy[1], min_y, max_y)
-        //.label("BALL XY")
-        .color(conrod::color::rgba(0.0, 0.0, 0.0, 1.0))
-        .w_h(ball_x_range/1.1, ball_y_range/1.25)
-        .middle_of(ids.target)
-        //.mid_left_of(ids.target)
-        .parent(ids.target)
-        .set(ids.xy_pad, ui)
-    {
-        app.ball_xy = [x, y];
-    }
-
-    let ball_x = app.ball_xy[0];
-    let ball_y = app.ball_xy[1];// - max_y - side * 0.5 - MARGIN - 20.0;
-
-    widget::Circle::fill(10.0)
-        .color(app.ball_color)
-        .x_y_relative_to(ids.target, ball_x, ball_y)
-        .set(ids.ball, ui);
-
-//************************
-// Number Dialer 
-//************************
-    // Use a `NumberDialer` widget to adjust the frequency of the sine wave below.
+//---------------------------------
+// Radargram controls
+//---------------------------------
 
     widget::Text::new("Dip")
         .parent(ids.rg_controls)
         .top_left_with_margin_on(ids.rg_controls, 7.0)
-        .font_size(VAR_SIZE)
+        .font_size(TEXT_SIZE)
         .set(ids.dip_title, ui);
 
     let min = -90.0;
     let max = 90.0;
     let decimal_precision = 1;
     for new_dip in widget::NumberDialer::new(app.dip, min, max, decimal_precision)
-        .y_position_relative_to(ids.dip_title,conrod::position::Relative::Scalar(-25.0))
+        .y_position_relative_to(ids.dip_title,BEFORE_EDITBOX)
         .align_left_of(ids.dip_title)
-        .w_h(70.0, 25.0)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
         //.label("F R E Q")
         .set(ids.dip_dialer, ui)
     {
@@ -116,9 +107,9 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 
     widget::Text::new("Strike")
         .parent(ids.rg_controls)
-        .y_position_relative_to(ids.dip_dialer,conrod::position::Relative::Scalar(-30.0))
+        .y_position_relative_to(ids.dip_dialer,BEFORE_TEXT)
         .align_left_of(ids.dip_title)
-        .font_size(VAR_SIZE)
+        .font_size(TEXT_SIZE)
         .set(ids.strike_title, ui);
 
     let min = 0.0;
@@ -126,24 +117,141 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     let decimal_precision = 1;
     for new_strike in widget::NumberDialer::new(app.strike, min, max, decimal_precision)
         .parent(ids.rg_controls)
-        .y_position_relative_to(ids.strike_title,conrod::position::Relative::Scalar(-25.0))
+        .y_position_relative_to(ids.strike_title,BEFORE_EDITBOX)
         .align_left_of(ids.dip_title)
-        .w_h(70.0, 25.0)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
         .set(ids.strike_dialer, ui)
     {
         app.strike = new_strike;
     }
 
-//widget::Canvas::new().flow_down(&[ids.dip_dialer, ids.strike_dialer]);
 
 
-    // let button = widget::Button::new().color(color::RED).w_h(30.0, 30.0);
-    // for _click in button.clone().middle_of(ids.floating_a).set(ids.bing, ui) {
-    //     println!("Bing!");
-    // }
-    // for _click in button.middle_of(ids.floating_b).set(ids.bong, ui) {
-    //     println!("Bong!");
-    // }
+    widget::Text::new("Δ vert")
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.strike_dialer,BEFORE_TEXT)
+        .align_left_of(ids.dip_title)
+        .font_size(TEXT_SIZE)
+        .set(ids.z_title, ui);
+
+    //app.vo_text = app.vert_offset.to_string();
+
+    for edit in widget::TextBox::new(&app.vo_text)
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.z_title,BEFORE_EDITBOX)
+        .align_left_of(ids.dip_title)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
+        .font_size(TEXT_SIZE)
+        .set(ids.vert_offset, ui)
+    {
+            match edit {
+                conrod::widget::text_box::Event::Enter => {
+                    app.vert_offset = app.vo_text.parse().unwrap_or(0.0);
+                    println!["{:?}", app.vert_offset];
+                }
+                conrod::widget::text_box::Event::Update(text) => {
+                    app.vo_text = text;
+                }
+            }
+    }
+
+
+    widget::Text::new("Δ dip")
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.vert_offset,BEFORE_EDITBOX)
+        .align_left_of(ids.dip_title)
+        .font_size(TEXT_SIZE)
+        .set(ids.y_title, ui);
+
+    for edit in widget::TextBox::new(&app.do_text)
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.y_title, BEFORE_TEXT)
+        .align_left_of(ids.dip_title)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
+        .font_size(TEXT_SIZE)
+        .set(ids.dip_offset, ui)
+    {
+            match edit {
+                conrod::widget::text_box::Event::Enter => {
+                    app.dip_offset = app.do_text.parse().unwrap_or(0.0);
+                    println!["{:?}", app.dip_offset];
+                }
+                conrod::widget::text_box::Event::Update(text) => {
+                    app.do_text = text;
+                }
+            }
+    }
+
+    widget::Text::new("Δ strike")
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.dip_offset,BEFORE_EDITBOX)
+        .align_left_of(ids.dip_title)
+        .font_size(TEXT_SIZE)
+        .set(ids.x_title, ui);
+
+    for edit in widget::TextBox::new(&app.so_text)
+        .parent(ids.rg_controls)
+        .y_position_relative_to(ids.x_title, BEFORE_TEXT)
+        .align_left_of(ids.dip_title)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
+        .font_size(TEXT_SIZE)
+        .set(ids.strike_offset, ui)
+    {
+            match edit {
+                conrod::widget::text_box::Event::Enter => {
+                    app.strike_offset = app.so_text.parse().unwrap_or(0.0);
+                    println!["{:?}", app.strike_offset];
+                }
+                conrod::widget::text_box::Event::Update(text) => {
+                    app.so_text = text;
+                }
+            }
+    }
+
+    widget::Text::new("Width")
+        .parent(ids.rg_controls)
+        .top_left_with_margin_on(ids.rg_controls, 7.0)
+        .font_size(TEXT_SIZE)
+        .y_position_relative_to(ids.strike_offset, BEFORE_TEXT)
+        .set(ids.width_title, ui);
+
+    let min = 0.0;
+    let max = 100.0;
+    let decimal_precision = 0;
+    for new_dip in widget::NumberDialer::new(app.width, min, max, decimal_precision)
+        .y_position_relative_to(ids.width_title,BEFORE_EDITBOX)
+        .align_left_of(ids.dip_title)
+        .w_h(TEXTBOX_W, TEXTBOX_H)
+        //.label("F R E Q")
+        .set(ids.width_dialer, ui)
+    {
+        app.width = new_dip;
+    }
+
+
+//---------------------------------
+// Target manipulator
+//---------------------------------
+
+    // Draw an EnvelopeEditor. (&[Point], x_min, x_max, y_min, y_max).
+    for event in widget::EnvelopeEditor::new(&mut app.profile, 0.0, 100.0, -10.0, 10.0)
+        .down(10.0)
+        .w_h(700.0, 200.0)
+        .parent(ids.target)
+//        .skew_y(env_skew_y)
+        .color(theme().background_color.invert())
+        .border(theme().border_width)
+        .border_color(theme().background_color.invert().plain_contrast())
+        //.label(&text)
+        //.label_color(app.bg_color.invert().plain_contrast().alpha(0.5))
+        .point_radius(3.0)
+        .middle_of(ids.target)
+        .line_thickness(1.5)
+        .set(ids.env_editor, ui)
+    {
+        event.update(&mut app.profile);
+//         println!["{:?}", event];
+    }
 
 }
 
@@ -160,6 +268,8 @@ pub    struct Ids {
         target,
         rg_controls,
         rg_image,
+        reflector,
+        rg_spacer,
         footer,
         footer_scrollbar,
         floating_a,
@@ -169,16 +279,16 @@ pub    struct Ids {
         tab_bar,
         tab_baz,
 
-        title,
-        subtitle,
-        top_left,
-        bottom_right,
-        foo_label,
-        bar_label,
-        baz_label,
-        button_matrix,
-        bing,
-        bong,
+        // title,
+        // subtitle,
+        // top_left,
+        // bottom_right,
+        // foo_label,
+        // bar_label,
+        // baz_label,
+        // button_matrix,
+        // bing,
+        // bong,
 
 
         dip_title,
@@ -186,9 +296,19 @@ pub    struct Ids {
         dialer_panel,
         dip_dialer,
         strike_dialer,
+        x_title,
+        strike_offset,
+        y_title,
+        dip_offset,
+        z_title,
+        vert_offset,
+        width_title,
+        width_dialer,
 
         rounded_rectangle,
     
+
+        env_editor,
 
         button_title,
         button,
@@ -253,24 +373,48 @@ impl EventLoop {
 pub struct FruscoApp {
     ball_xy: conrod::Point,
     ball_color: conrod::Color,
+    vert_offset: f32,
+    vo_text : String,
+    dip_offset: f32,
+    do_text : String,
+    strike_offset: f32,
+    so_text : String,
     dip: f32,
+    width: f32,
     strike: f32,
+    profile: Vec<conrod::Point>,
+
 //    rust_logo: conrod::image::Id,
 }
 
 
 impl FruscoApp {
-
-    /// Simple constructor for the `DemoApp`.
+    /// Sensible defaults for the app.
     pub fn new() -> Self {
         FruscoApp {
+            vert_offset: 0.0,
+            vo_text: String::new(),
+            dip_offset: 0.0,
+            do_text: String::new(),
+            strike_offset: 0.0,
+            so_text: String::new(),
+
             ball_xy: [0.0, 0.0],
             ball_color: conrod::color::WHITE,
             dip: 0.0,
             strike: 0.0,
- //           rust_logo: conrod::image::Id::new(),
+            width: 100.0,
+            profile: vec![[0.0, 0.0],           // For debugging only
+                          [10.0, -10.0],        // on release: put all 
+                          [25.0, 0.0],          // to y=0.0
+                          [80.0, 10.0],
+                          [100.0, 0.0],
+                         ],
         }
     }
 
 }
+
+
+
 
