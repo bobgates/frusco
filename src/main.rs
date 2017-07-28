@@ -14,13 +14,13 @@ extern crate cgmath;
 
 
 #[allow(dead_code)]
-mod target;
-use target::{TargetPlane, Rect3D};
+//mod target;
+//use target::{TargetPlane, Rect3D};
 
 #[allow(dead_code)]
-mod borehole;
+//mod borehole;
 //use borehole::SurveyObservation;
-use borehole::Borehole;
+//use borehole::Borehole;
 
 mod gui;
 mod theme;
@@ -31,8 +31,6 @@ pub fn main() {
 
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = 600;
-
-
 
 
     // Build the window.
@@ -54,15 +52,15 @@ pub fn main() {
     ui.fonts.insert_from_file(font_path).unwrap();
 
 
-
-    let mut app = gui::FruscoApp::new();
-
     // A type used for converting `conrod::render::Primitives` into `Command`s that can be used
     // for drawing to the glium `Surface`.
     let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
 
     // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
+    let mut image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
+
+    let mut app = gui::FruscoApp::new(&display, &mut image_map);
+
 
     // Instantiate the generated list of widget identifiers.
     let ids = &mut gui::Ids::new(ui.widget_id_generator());
@@ -94,8 +92,8 @@ pub fn main() {
         }
 
         // Instantiate all widgets in the GUI.
-        gui::set_widgets(ui.set_widgets(), ids, &mut app);
-
+        gui::set_widgets(ui.set_widgets(), ids, &mut app, &display);
+        
         // Render the `Ui` and then display it on the screen.
         if let Some(primitives) = ui.draw_if_changed() {
             renderer.fill(&display, primitives, &image_map);

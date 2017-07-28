@@ -1,20 +1,28 @@
 //! A simple demonstration of how to construct and use Canvasses by splitting up the window.
 
-//#[macro_use] 
+
 extern crate conrod;
 extern crate glium;
 extern crate find_folder;
 extern crate winit;
 extern crate rand;
+extern crate image;
+extern crate petgraph;
 
-//use conrod::backend::glium::glium::{DisplayBuild, Surface};
+use conrod::backend::glium::glium::{DisplayBuild, Surface};
 use std;
 
-use theme::theme;
+use conrod::theme::Theme;
 
+use theme;
 // Draw the Ui.
-pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp) {
-    use conrod::{color, widget, Colorable, Labelable, Borderable, Positionable, Sizeable, Widget};
+
+pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp, 
+                    display: &glium::backend::glutin_backend::GlutinFacade) {
+    use conrod::{color, widget, Positionable, Sizeable, Colorable, Borderable, Widget};
+    use conrod::backend::glium::glium;
+    use conrod::backend::glium::glium::{DisplayBuild, Surface};
+   use glium::backend::glutin_backend::GlutinFacade;
 
     const TITLE_SIZE: conrod::FontSize = 42;
     const SUBTITLE_SIZE: conrod::FontSize = 10;
@@ -25,7 +33,12 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     const TEXTBOX_W: f64 = 70.0;
     const TEXTBOX_H: f64 = 21.0;
 
-    // Construct our main `Canvas` tree.
+    let rg_image = widget::Canvas::new()
+                  .border_color(color::GRAY)
+                    .border(2.)
+                    .length_weight(0.8);
+
+    //Construct our main `Canvas` tree.
     widget::Canvas::new().flow_down(&[
         (ids.header, widget::Canvas::new()
 //            .color(color::BLUE)
@@ -43,10 +56,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
                     //.border(0.)
 //                    .border_color(color::GREY)
                 ),
-                (ids.rg_image, widget::Canvas::new()
-                    .border_color(color::GRAY)
-                    .border(2.)
-                    .length_weight(0.8)
+                (ids.rg_image, rg_image
                 ),
                 (ids.rg_spacer, widget::Canvas::new()
                     .length_weight(0.05)
@@ -73,12 +83,13 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     let min_y = -12.0;
     let max_y = 12.0;
 
-    widget::PlotPath::new(min_x, max_x, min_y, max_y, f32::sin)
-        .kid_area_w_of(ids.rg_image)
-        .color(color::YELLOW)
-        .middle_of(ids.rg_image)
-        .set(ids.reflector, ui);
+    // widget::PlotPath::new(min_x, max_x, min_y, max_y, f32::sin)
+    //     .kid_area_w_of(ids.rg_image)
+    //     .color(color::YELLOW)
+    //     .middle_of(ids.rg_image)
+    //     .set(ids.reflector, ui);
 
+   // widget::Image::new(radargram_image).w_h(w as f64, h as f64).middle().set(ids.radargram_image, ui);
 
 
 //---------------------------------
@@ -239,9 +250,9 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
         .w_h(700.0, 200.0)
         .parent(ids.target)
 //        .skew_y(env_skew_y)
-        .color(theme().background_color.invert())
-        .border(theme().border_width)
-        .border_color(theme().background_color.invert().plain_contrast())
+        .color(theme::theme().background_color.invert())
+        .border(theme::theme().border_width)
+        .border_color(theme::theme().background_color.invert().plain_contrast())
         //.label(&text)
         //.label_color(app.bg_color.invert().plain_contrast().alpha(0.5))
         .point_radius(3.0)
@@ -253,10 +264,23 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 //         println!["{:?}", event];
     }
 
+
+//---------------------------------
+// Radargram image
+//---------------------------------
+
+    // let w = rg_image.element.Properties().width;
+
+    // // println!["{:?}", w];
+
+    widget::Image::new(app.radargram)
+        .kid_area_w_of(ids.rg_image)
+        .kid_area_h_of(ids.rg_image)
+        .middle_of(ids.rg_image)
+        .set(ids.radargram_image, ui);
+
 }
 
-
-//fn labelled_dialer(text: &str, value: f32, nu)
 
 
 // Generate a unique `WidgetId` for each widget.
@@ -265,6 +289,7 @@ pub    struct Ids {
         master,
         header,
         radargram,
+        radargram_image,
         target,
         rg_controls,
         rg_image,
@@ -383,14 +408,26 @@ pub struct FruscoApp {
     width: f32,
     strike: f32,
     profile: Vec<conrod::Point>,
+    radargram: conrod::image::Id,
 
-//    rust_logo: conrod::image::Id,
+
+//    radargram_image: conrod::image::Id,
 }
 
 
 impl FruscoApp {
     /// Sensible defaults for the app.
-    pub fn new() -> Self {
+    pub fn new(display : &glium::Display, image_map : &mut conrod::image::Map<glium::texture::Texture2d>) -> Self {
+
+        // Create our `conrod::image::Map` which describes each of our widget->image mappings.
+        // In our case we only have one image, however the macro may be used to list multiple.
+        let radargram_image = load_radargram_image(&display, true);
+        let (w, h) = (radargram_image.get_width(), radargram_image.get_height().unwrap());
+        //let mut image_map = conrod::image::Map::new();
+        let radargram_image = image_map.insert(radargram_image);
+    //println!["rust logo: {:?}", radargram_image];
+
+
         FruscoApp {
             vert_offset: 0.0,
             vo_text: String::new(),
@@ -410,11 +447,44 @@ impl FruscoApp {
                           [80.0, 10.0],
                           [100.0, 0.0],
                          ],
+            radargram: radargram_image,
         }
     }
 
 }
 
+
+fn load_radargram_image(display: &glium::Display, rust_image: bool) -> glium::texture::Texture2d {
+    
+    let assets = if rust_image {
+        find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap()
+    } else { 
+        find_folder::Search::ParentsThenKids(3, 3).for_folder("test_data").unwrap()
+    };
+
+    println!["ASSETS: {:?}", assets];
+
+
+    let path = if rust_image {
+
+        assets.join("images/rust.png")
+    } else {
+        
+        assets.join("hole_partial_image.jpg")
+    };
+
+    println!["PATH: {:?}", path];
+
+
+    let rgba_image = image::open(&std::path::Path::new(&path)).unwrap().to_rgba();
+    
+    let image_dimensions = rgba_image.dimensions();
+    //println!["image dimensions: {:?}", image_dimensions];
+
+    let raw_image = glium::texture::RawImage2d::from_raw_rgba_reversed(rgba_image.into_raw(), image_dimensions);
+    let texture = glium::texture::Texture2d::new(display, raw_image).unwrap();
+    texture
+}
 
 
 

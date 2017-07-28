@@ -21,4 +21,6 @@ find_folder = "0.3.0"
 rand = "0.3.13"
 winit = "0.5.9"
 glium = "0.16.0"
+image = "0.13.0"
+petgraph = "*"
 
