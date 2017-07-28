@@ -11,6 +11,7 @@ extern crate petgraph;
 
 use conrod::backend::glium::glium::{DisplayBuild, Surface};
 use std;
+use std::iter::once;
 
 use conrod::theme::Theme;
 
@@ -264,7 +265,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 //         println!["{:?}", event];
     }
 
-
+ 
 //---------------------------------
 // Radargram image
 //---------------------------------
@@ -279,6 +280,26 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
         .middle_of(ids.rg_image)
         .set(ids.radargram_image, ui);
 
+    let left = [-40.0, -40.0];
+    let top = [0.0, 40.0];
+    let right = [40.0, -40.0];
+    let points = once(left).chain(once(top)).chain(once(right));
+
+    let left = app.profile[0];
+    let mid = app.profile[1];
+    let right = app.profile[2];
+    //let points = once(left).chain(once(mid)).chain(once(right));
+    //let points = once(left).chain(mid).chain(right);
+
+
+    let points = app.profile.clone();
+
+    widget::PointPath::centred(points)
+        .middle_of(ids.radargram_image)
+        .color(color::YELLOW)
+        //.down(80.0)
+        .set(ids.point_path, ui);
+
 }
 
 
@@ -290,6 +311,7 @@ pub    struct Ids {
         header,
         radargram,
         radargram_image,
+        point_path,
         target,
         rg_controls,
         rg_image,
@@ -429,6 +451,7 @@ impl FruscoApp {
 
 
         FruscoApp {
+
             vert_offset: 0.0,
             vo_text: String::new(),
             dip_offset: 0.0,
@@ -453,7 +476,7 @@ impl FruscoApp {
 
 }
 
-
+/// Loads a radargram from a location, or the rust logo for test purposes.
 fn load_radargram_image(display: &glium::Display, rust_image: bool) -> glium::texture::Texture2d {
     
     let assets = if rust_image {
