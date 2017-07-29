@@ -92,7 +92,7 @@ pub fn main() {
         }
 
         // Instantiate all widgets in the GUI.
-        gui::set_widgets(ui.set_widgets(), ids, &mut app, &display);
+        gui::set_widgets(ui.set_widgets(), ids, &mut app);
         
         // Render the `Ui` and then display it on the screen.
         if let Some(primitives) = ui.draw_if_changed() {
