@@ -1,6 +1,4 @@
 //! A simple demonstration of how to construct and use Canvasses by splitting up the window.
-
-
 extern crate conrod;
 extern crate glium;
 extern crate find_folder;
@@ -9,20 +7,13 @@ extern crate rand;
 extern crate image;
 extern crate petgraph;
 
-//use conrod::backend::glium::glium::{DisplayBuild, Surface};
 use std;
-//use std::iter::once;
-
-//use conrod::theme::Theme;
-
 use theme;
-// Draw the Ui.
 
 use conrod::utils::map_range;
 
 
 pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp){ 
-//                    display: &glium::backend::glutin_backend::GlutinFacade) {
     use conrod::{color, widget, Positionable, Sizeable, Colorable, Borderable, Widget};
 
     const TEXT_SIZE: conrod::FontSize = 16;
@@ -267,7 +258,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
         .point_radius(3.0)
         .middle_of(ids.target)
         .line_thickness(1.5)
-        .set(ids.env_editor, ui)
+        .set(ids.profile_editor, ui)
     {
         event.update(&mut app.profile);
 //         println!["{:?}", event];
@@ -277,10 +268,6 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 //---------------------------------
 // Radargram image
 //---------------------------------
-
-    // let w = rg_image.element.Properties().width;
-
-    // // println!["{:?}", w];
 
     widget::Image::new(app.radargram)
         .kid_area_w_of(ids.rg_image)
@@ -292,17 +279,12 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 
     match visible {
         Some(rect) => { 
-            let x1 = rect.x.start; 
-            let x2 = rect.x.end;
-            
-            let y1 = rect.y.start; 
-            let y2 = rect.y.end;
 
             let mut mapped : Vec<conrod::Point> = Vec::new();
 
             for i in app.profile.clone(){
-                let xn = map_range(i[0], 0.0, 100.0, x1, x2);
-                let yn = map_range(i[1], -15.0, 15.0, y1, y2);
+                let xn = map_range(i[0], 0.0, 100.0, rect.x.start, rect.x.end);
+                let yn = map_range(i[1], -15.0, 15.0, rect.y.start, rect.y.end);
                 mapped.push([xn, yn].clone());
             }
 
@@ -315,13 +297,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
         }
         None => (),
     }
-
-
-
-
 }
-
-
 
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
@@ -365,13 +341,8 @@ pub    struct Ids {
         rounded_rectangle,
     
 
-        env_editor,
+        profile_editor,
 
-        button_title,
-        button,
-        xy_pad,
-        ball,
-        toggle,
     }
 }
 
