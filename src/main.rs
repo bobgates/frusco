@@ -13,15 +13,6 @@ extern crate cgmath;
 //use cgmath::Point3;
 
 
-#[allow(dead_code)]
-//mod target;
-//use target::{TargetPlane, Rect3D};
-
-#[allow(dead_code)]
-//mod borehole;
-//use borehole::SurveyObservation;
-//use borehole::Borehole;
-
 mod gui;
 mod theme;
 
