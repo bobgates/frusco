@@ -1,16 +1,12 @@
-//! A simple demonstration of how to construct and use Canvasses by splitting up the window.
-extern crate conrod;
-extern crate glium;
 extern crate find_folder;
-extern crate winit;
-extern crate rand;
 extern crate image;
-extern crate petgraph;
 
 use std;
 use theme;
 
+use conrod;
 use conrod::utils::map_range;
+use conrod::backend::glium::glium::{self, Surface};
 
 
 pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp){ 
@@ -25,7 +21,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     //Construct our main `Canvas` tree.
     widget::Canvas::new().flow_down(&[
         (ids.header, widget::Canvas::new()
-            .color(color::DARK_GREY)
+            .color(color::LIGHT_BLUE)
             .length_weight(0.05)
         ),
         (ids.radargram, widget::Canvas::new()
@@ -361,7 +357,7 @@ impl EventLoop {
     }
 
     /// Produce an iterator yielding all available events.
-    pub fn next(&mut self, display: &glium::Display) -> Vec<glium::glutin::Event> {
+    pub fn next(&mut self, events_loop: &mut glium::glutin::EventsLoop) -> Vec<glium::glutin::Event> {
         // We don't want to loop any faster than 60 FPS, so wait until it has been at least 16ms
         // since the last yield.
         let last_update = self.last_update;
@@ -373,11 +369,14 @@ impl EventLoop {
 
         // Collect all pending events.
         let mut events = Vec::new();
-        events.extend(display.poll_events());
+        events_loop.poll_events(|event| events.push(event));
 
         // If there are no events and the `Ui` does not need updating, wait for the next event.
         if events.is_empty() && !self.ui_needs_update {
-            events.extend(display.wait_events().next());
+            events_loop.run_forever(|event| {   
+                events.push(event);
+                glium::glutin::ControlFlow::Break
+            });
         }
 
         self.ui_needs_update = false;
@@ -479,26 +478,15 @@ impl FruscoApp {
 /// Loads a radargram from a location, or the rust logo for test purposes.
 fn load_radargram_image(display: &glium::Display, rust_image: bool) -> glium::texture::Texture2d {
     
-    let assets = if rust_image {
-        find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap()
-    } else { 
-        find_folder::Search::ParentsThenKids(3, 3).for_folder("test_data").unwrap()
-    };
+    let assets = find_folder::Search::ParentsThenKids(3, 3)
+                      .for_folder(if rust_image {"assets"} else {"test_data"})
+                      .unwrap();
 
-    let path = if rust_image {
-
-        assets.join("images/rust.png")
-    } else {
-        
-        assets.join("hole_partial_image.jpg")
-    };
+    let path = assets.join(if rust_image { "images/rust.png" } else { "hole_partial_image.jpg" });
 
     let rgba_image = image::open(&std::path::Path::new(&path)).unwrap().to_rgba();
-    
     let image_dimensions = rgba_image.dimensions();
-    //println!["image dimensions: {:?}", image_dimensions];
-
-    let raw_image = glium::texture::RawImage2d::from_raw_rgba_reversed(rgba_image.into_raw(), image_dimensions);
+    let raw_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&rgba_image.into_raw(), image_dimensions);
     let texture = glium::texture::Texture2d::new(display, raw_image).unwrap();
     texture
 }
