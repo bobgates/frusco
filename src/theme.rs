@@ -13,7 +13,7 @@ pub fn theme() -> conrod::Theme {
         shape_color: conrod::color::LIGHT_CHARCOAL,
         border_color: conrod::color::BLACK,
         border_width: 0.0,
-        label_color: conrod::color::WHITE,
+        label_color: conrod::color::YELLOW,
         font_id: None,
         font_size_large: 26,
         font_size_medium: 18,

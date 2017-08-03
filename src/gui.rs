@@ -7,9 +7,10 @@ use theme;
 use conrod;
 use conrod::utils::map_range;
 use conrod::backend::glium::glium::{self, Surface};
+use gui;
 
 
-pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoApp){ 
+pub fn load_data_to_widgets(ref mut ui: conrod::UiCell, ids: & gui::Ids, app: &mut FruscoApp){ 
     use conrod::{color, widget, Positionable, Sizeable, Colorable, Borderable, Widget};
 
     const TEXT_SIZE: conrod::FontSize = 16;
@@ -73,6 +74,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 //---------------------------------
 
     widget::Text::new("Velocity")
+        .color(theme::theme().label_color)
         .parent(ids.rg_controls)
         .top_left_with_margin_on(ids.rg_controls, 7.0)
         .font_size(TEXT_SIZE)
@@ -96,6 +98,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 //---------------------------------
 
     widget::Text::new("Dip")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .top_left_with_margin_on(ids.target_controls, 7.0)
         .font_size(TEXT_SIZE)
@@ -116,6 +119,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
 
 
     widget::Text::new("Strike")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .y_position_relative_to(ids.dip_dialer,BEFORE_TEXT)
         .align_left_of(ids.dip_title)
@@ -136,6 +140,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     }
 
     widget::Text::new("Δ vert")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .y_position_relative_to(ids.strike_dialer,BEFORE_TEXT)
         .align_left_of(ids.dip_title)
@@ -164,6 +169,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     }
 
     widget::Text::new("Δ dip")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .y_position_relative_to(ids.vert_offset,BEFORE_EDITBOX)
         .align_left_of(ids.dip_title)
@@ -190,6 +196,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     }
 
     widget::Text::new("Δ strike")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .y_position_relative_to(ids.dip_offset,BEFORE_EDITBOX)
         .align_left_of(ids.dip_title)
@@ -216,6 +223,7 @@ pub fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids, app: &mut FruscoAp
     }
 
     widget::Text::new("Width")
+        .color(theme::theme().label_color)
         .parent(ids.target_controls)
         .top_left_with_margin_on(ids.rg_controls, 7.0)
         .font_size(TEXT_SIZE)
